@@ -11,6 +11,19 @@
 <link rel="manifest" href="./manifest.json">
 <!-- iOS icon -->
 <link rel="apple-touch-icon" sizes="180x180" href="./icon.png">
+<!-- OneSignal Web Push -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "41f61fc3-5e9d-4432-a8da-825c9717687d",
+      safari_web_id: "web.onesignal.auto.41f61fc3-5e9d-4432-a8da-825c9717687d",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+  });
+</script>
 <title>Flow — שתיית מים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Noto+Sans+Hebrew:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -800,11 +813,12 @@ html, body {
         <div class="hero-top">
           <div>
             <div class="hero-ml" id="heroMl">0</div>
-            <div class="hero-unit">מ"ל היום</div>
+            <div class="hero-unit" id="heroUnit">מ"ל היום</div>
           </div>
           <div class="hero-goal">
             <div class="hero-goal-label">יעד</div>
-            <div class="hero-goal-val" id="heroGoal">2500</div>
+            <div class="hero-goal-val" id="heroGoal">2.5</div>
+            <div class="hero-goal-unit" id="heroGoalUnit" style="font-size:11px;color:var(--text3);margin-top:1px">ליטר</div>
             <div id="workoutBadge" class="workout-badge" style="display:none">🏋️ +1L</div>
           </div>
         </div>
@@ -856,7 +870,7 @@ html, body {
         <div class="workout-toggle-icon">🏋️</div>
         <div class="workout-toggle-text">
           <div class="workout-toggle-title">יום אימון</div>
-          <div class="workout-toggle-sub">מוסיף 1,000 מ"ל ליעד אוטומטית</div>
+          <div class="workout-toggle-sub">מוסיף 1 ליטר ליעד אוטומטית</div>
         </div>
         <div class="toggle-switch" id="workoutSwitch">
           <div class="toggle-knob"></div>
@@ -1037,11 +1051,19 @@ html, body {
           </div>
           <span style="color:var(--warn);font-size:13px">אפס</span>
         </div>
+        <div class="setting-row" style="cursor:pointer" onclick="resetHistory()">
+          <div class="setting-icon">📅</div>
+          <div class="setting-info">
+            <div class="setting-title">אפס היסטוריה</div>
+            <div class="setting-sub">מחק את כל ההיסטוריה — מתחיל מחדש</div>
+          </div>
+          <span style="color:var(--warn);font-size:13px">אפס</span>
+        </div>
         <div class="setting-row" style="cursor:pointer" onclick="clearAllData()">
           <div class="setting-icon">🗑️</div>
           <div class="setting-info">
             <div class="setting-title">מחק הכל</div>
-            <div class="setting-sub" style="color:var(--danger)">פעולה בלתי הפיכה!</div>
+            <div class="setting-sub" style="color:var(--danger)">כולל הגדרות — בלתי הפיכה!</div>
           </div>
           <span style="color:var(--danger);font-size:13px">מחק</span>
         </div>
@@ -1161,7 +1183,19 @@ function getTodayTotal() {
   return state.today.entries.reduce((s, e) => s + e.ml, 0);
 }
 function fmtMl(ml) {
-  return ml >= 1000 ? (ml/1000).toFixed(ml%1000===0?0:1)+'L' : ml+'';
+  if (ml >= 1000) {
+    const l = ml / 1000;
+    return (l % 1 === 0 ? l.toFixed(0) : l.toFixed(1)) + ' ליטר';
+  }
+  return ml + ' מ"ל';
+}
+function fmtMlShort(ml) {
+  // Short version for stats cards
+  if (ml >= 1000) {
+    const l = ml / 1000;
+    return (l % 1 === 0 ? l.toFixed(0) : l.toFixed(1)) + 'L';
+  }
+  return ml + '';
 }
 
 // ─────────────────────────────────────────────
@@ -1265,7 +1299,7 @@ function addWater(ml) {
   closeAddModal();
   const total = getTodayTotal();
   const goal = getTodayGoal();
-  showToast('💧', `+${ml} מ"ל נוסף! סה"כ היום: ${total} מ"ל`);
+  showToast('💧', `+${fmtMl(ml)} נוסף! סה"כ היום: ${fmtMl(total)}`);
   if (total >= goal && !celebratedToday) {
     celebratedToday = true;
     setTimeout(() => showCelebration(total), 600);
@@ -1294,7 +1328,7 @@ function toggleWorkout() {
   saveState(); updateUI();
   showToast(state.today.isWorkout ? '🏋️' : '🏠',
     state.today.isWorkout
-      ? `יום אימון${getName(', ')}! יעד עלה ב-1,000 מ"ל 💪`
+      ? `יום אימון${getName(', ')}! יעד עלה ב-1 ליטר 💪`
       : `${g('חזרת','חזרת')} לרגיל${getName(', ')} — יעד בסיס`);
 }
 
@@ -1308,12 +1342,23 @@ function updateUI() {
   const remaining = Math.max(0, goal - total);
 
   // Hero
-  document.getElementById('heroMl').textContent = total.toLocaleString();
-  document.getElementById('heroGoal').textContent = goal.toLocaleString();
+  const totalDisplay = total >= 1000
+    ? (total/1000 % 1 === 0 ? (total/1000).toFixed(0) : (total/1000).toFixed(1))
+    : total;
+  const totalUnit = total >= 1000 ? 'ליטר היום' : 'מ"ל היום';
+  const goalDisplay = goal >= 1000
+    ? (goal/1000 % 1 === 0 ? (goal/1000).toFixed(0) : (goal/1000).toFixed(1))
+    : goal;
+  const goalUnit = goal >= 1000 ? 'ליטר' : 'מ"ל';
+
+  document.getElementById('heroMl').textContent = totalDisplay;
+  document.getElementById('heroUnit').textContent = totalUnit;
+  document.getElementById('heroGoal').textContent = goalDisplay;
+  document.getElementById('heroGoalUnit').textContent = goalUnit;
   document.getElementById('progressFill').style.width = pct + '%';
   document.getElementById('progressPct').textContent = pct + '%';
   document.getElementById('progressRemaining').textContent =
-    remaining > 0 ? `נותרו ${remaining.toLocaleString()} מ"ל` : '🎉 יעד הושג!';
+    remaining > 0 ? `נותרו ${fmtMl(remaining)}` : '🎉 יעד הושג!';
 
   // Workout badge
   const wb = document.getElementById('workoutBadge');
@@ -1332,10 +1377,10 @@ function updateUI() {
       sm.textContent = `✅ ${g('אתה','את')} בכיוון לעמוד ביעד!`;
       sm.className = 'status-msg status-ok';
     } else if (pct >= expectedPct - 25) {
-      sm.textContent = `⚠️ מעט אחורה — ${g('שתה','שתי')} עוד ${Math.round(remaining/250)} כוסות כדי להשיג`;
+      sm.textContent = `⚠️ מעט אחורה — ${g('שתה','שתי')} עוד ${fmtMl(remaining)} כדי להשיג`;
       sm.className = 'status-msg status-warn';
     } else {
-      sm.textContent = `🚨 ${g('אתה מפגר','את מפגרת')}! ${g('שתה','שתי')} לפחות ${Math.round(remaining/2/250)} כוסות עכשיו`;
+      sm.textContent = `🚨 ${g('אתה מפגר','את מפגרת')}! ${g('שתה','שתי')} לפחות ${fmtMl(Math.round(remaining/2))} עכשיו`;
       sm.className = 'status-msg status-danger';
     }
     if (total === 0) {
@@ -1351,9 +1396,9 @@ function updateUI() {
     lastEntry ? formatTime(lastEntry.time) : '—';
   const h7 = state.history.slice(0, 7);
   const avg7 = h7.length ? Math.round(h7.reduce((s,h)=>s+h.total,0)/h7.length) : 0;
-  document.getElementById('avgStat').textContent = avg7 ? fmtMl(avg7) : '—';
+  document.getElementById('avgStat').textContent = avg7 ? fmtMlShort(avg7) : '—';
   const best = Math.max(total, ...state.history.map(h=>h.total));
-  document.getElementById('bestDayStat').textContent = best > 0 ? fmtMl(best) : '—';
+  document.getElementById('bestDayStat').textContent = best > 0 ? fmtMlShort(best) : '—';
 
   // Streak
   document.getElementById('streakNum').textContent = state.streak.current;
@@ -1408,7 +1453,7 @@ function renderTodayLog() {
     const realIdx = state.today.entries.length - 1 - i;
     return `<div class="log-item">
       <div class="log-drop">💧</div>
-      <div class="log-ml">${e.ml} מ"ל</div>
+      <div class="log-ml">${fmtMl(e.ml)}</div>
       <div class="log-time">${formatTime(e.time)}</div>
       <div class="log-del" onclick="deleteEntry(${realIdx})">✕</div>
     </div>`;
@@ -1421,9 +1466,9 @@ function renderHistory() {
   const avg7 = h7.length ? Math.round(h7.reduce((s,h)=>s+h.total,0)/h7.length) : 0;
   const pct7 = h7.length ? Math.round(h7.filter(h=>h.achieved).length/h7.length*100) : 0;
   const best7 = h7.length ? Math.max(...h7.map(h=>h.total)) : 0;
-  document.getElementById('hist7avg').textContent = avg7 ? fmtMl(avg7) : '—';
+  document.getElementById('hist7avg').textContent = avg7 ? fmtMlShort(avg7) : '—';
   document.getElementById('hist7pct').textContent = h7.length ? pct7+'%' : '—';
-  document.getElementById('hist7best').textContent = best7 ? fmtMl(best7) : '—';
+  document.getElementById('hist7best').textContent = best7 ? fmtMlShort(best7) : '—';
 
   // chart
   const cb = document.getElementById('chartBars');
@@ -1511,39 +1556,59 @@ function resetToday() {
     showToast('🔄', 'נתוני היום אופסו');
   }
 }
+function resetHistory() {
+  if (confirm('למחוק את כל ההיסטוריה? הנתונים של היום ישמרו.')) {
+    state.history = [];
+    state.streak = { current: 0, best: 0 };
+    state.badges = [];
+    saveState(); updateUI(); renderHistory();
+    showToast('📅', 'ההיסטוריה אופסה — מתחילים מחדש!');
+  }
+}
 function clearAllData() {
-  if (confirm('למחוק את כל הנתונים? פעולה זו בלתי הפיכה.')) {
-    localStorage.removeItem('flow_state');
-    location.reload();
+  if (confirm('למחוק את כל הנתונים וההגדרות? פעולה זו בלתי הפיכה.')) {
+    try {
+      localStorage.clear();
+    } catch(e) {}
+    // Reset state in memory too before reload
+    showToast('🗑️', 'כל הנתונים נמחקו');
+    setTimeout(() => location.reload(), 800);
   }
 }
 
 // ─────────────────────────────────────────────
-// REMINDERS
+// REMINDERS — OneSignal
 // ─────────────────────────────────────────────
 let reminderInterval = null;
 
-function toggleReminders() {
+async function toggleReminders() {
   if (!state.settings.reminders) {
-    if ('Notification' in window) {
-      Notification.requestPermission().then(p => {
-        state.settings.reminders = p === 'granted';
-        if (state.settings.reminders) {
+    OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        const permission = await OneSignal.Notifications.requestPermission();
+        if (permission) {
+          state.settings.reminders = true;
+          saveSettings(); updateUI();
           startReminders();
-          showToast('🔔', 'תזכורות הופעלו!');
+          showToast('🔔', `התראות הופעלו${getName(', ')}!`);
         } else {
           showToast('⚠️', 'לא ניתן אישור להתראות');
         }
-        saveSettings(); updateUI();
-      });
-    } else {
-      showToast('⚠️', 'הדפדפן לא תומך בהתראות');
-    }
+      } catch(e) {
+        // Fallback to browser notifications
+        Notification.requestPermission().then(p => {
+          state.settings.reminders = p === 'granted';
+          if (state.settings.reminders) { startReminders(); showToast('🔔', 'התראות הופעלו!'); }
+          else showToast('⚠️', 'לא ניתן אישור');
+          saveSettings(); updateUI();
+        });
+      }
+    });
   } else {
     state.settings.reminders = false;
     stopReminders();
     saveSettings(); updateUI();
-    showToast('🔕', 'תזכורות כובו');
+    showToast('🔕', 'התראות כובו');
   }
 }
 
@@ -1558,15 +1623,19 @@ function startReminders() {
     if (h < sh || h >= eh) return;
     const total = getTodayTotal();
     const goal = getTodayGoal();
-    const pct = Math.round(total/goal*100);
+    const pct = Math.round(total / goal * 100);
     const fact = WATER_FACTS[Math.floor(Math.random()*WATER_FACTS.length)].text.replace(/<[^>]+>/g,'');
     const n = getName();
+    const title = '💧 Flow — זמן לשתות!';
     const body = pct >= 100
-      ? `${n ? n+', ' : ''}${g('מדהים','מדהימה')}! ${g('השגת','השגת')} את היעד היומי! 🎉`
-      : `${n ? n+', ' : ''}${g('שתית','שתית')} ${total} מ"ל (${pct}%). עוד ${goal-total} מ"ל ליעד. 💡 ${fact}`;
-    new Notification('💧 Flow — זמן לשתות!', { body, icon: '💧' });
+      ? `${n ? n+', ' : ''}${g('מדהים','מדהימה')}! השגת את היעד היומי! 🎉`
+      : `${n ? n+', ' : ''}שתית ${fmtMl(total)} (${pct}%). עוד ${fmtMl(goal-total)} ליעד. 💡 ${fact}`;
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: './icon.png', badge: './icon.png' });
+    }
   }, ms);
 }
+
 function stopReminders() {
   if (reminderInterval) { clearInterval(reminderInterval); reminderInterval = null; }
 }
@@ -1626,7 +1695,7 @@ function showCelebration(total) {
   const cel = document.getElementById('celebration');
   const n = getName();
   document.querySelector('.celeb-title').textContent = n ? `כל הכבוד, ${n}! 🎉` : `יעד הושג! 🎉`;
-  document.querySelector('.celeb-sub').textContent = `${g('שתית','שתית')} ${total.toLocaleString()} מ"ל היום — הגוף שלך מודה לך 💧`;
+  document.querySelector('.celeb-sub').textContent = `${g('שתית','שתית')} ${fmtMl(total)} היום — הגוף שלך מודה לך 💧`;
   cel.classList.add('active');
   spawnConfetti();
 }
@@ -1793,21 +1862,7 @@ window.addEventListener('load', () => {
   if (state.settings.reminders) startReminders();
   celebratedToday = getTodayTotal() >= getTodayGoal() && getTodayTotal() > 0;
 
-  // Add some demo history if empty
-  if (state.history.length === 0) {
-    const demoGoal = state.settings.dailyGoal;
-    const demoData = [2200, 2700, 1900, 2500, 3100, 2400, 2800];
-    for (let i = demoData.length; i >= 1; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const total = demoData[i-1];
-      state.history.unshift({ date: ds, total, goal: demoGoal, achieved: total >= demoGoal, isWorkout: total > 2600 });
-    }
-    updateStreak();
-    checkBadges(0);
-    saveState();
-    renderHistory();
-  }
+  // No demo data — start fresh, history builds from real usage
 });
 
 // save on blur
