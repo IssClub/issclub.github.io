@@ -125,21 +125,23 @@ html, body {
   position: absolute; inset: 0;
   overflow-y: auto; overflow-x: hidden;
   padding: 0 16px 100px;
-  display: none;
+  display: none !important;
   opacity: 0;
-  pointer-events: none;
+  pointer-events: none !important;
+  z-index: 0;
 }
 .view.active {
-  display: block;
+  display: block !important;
   opacity: 1;
-  pointer-events: all;
+  pointer-events: auto !important;
+  z-index: 9999;
   animation: viewIn 0.25s ease forwards;
 }
+.view::-webkit-scrollbar { display: none; }
 @keyframes viewIn {
   from { opacity: 0; transform: translateX(14px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-.view::-webkit-scrollbar { display: none; }
 
 /* ───── BOTTOM NAV ───── */
 .bottom-nav {
@@ -962,6 +964,9 @@ html, body {
           </div>
         </div>
       </div>
+
+      <div class="settings-section">
+        <div class="settings-label">יעדי שתייה</div>
         <div class="setting-row">
           <div class="setting-icon">🎯</div>
           <div class="setting-info">
@@ -1568,10 +1573,18 @@ function stopReminders() {
 // NAVIGATION
 // ─────────────────────────────────────────────
 let currentView = 'home';
+const ALL_VIEWS = ['home','history','settings','tips'];
+
 function navigate(v) {
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  // Remove active from ALL views — CSS handles display:none automatically
+  ALL_VIEWS.forEach(id => {
+    document.getElementById('view-' + id).classList.remove('active');
+  });
   document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+  // Add active to target — CSS handles display:block + z-index + pointer-events
   document.getElementById('view-' + v).classList.add('active');
+
   const nb = document.getElementById('nav-' + v);
   if (nb) nb.classList.add('active');
   currentView = v;
