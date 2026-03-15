@@ -26,7 +26,7 @@
 </script>
 <title>Flow — שתיית מים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Noto+Sans+Hebrew:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Hebrew:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 :root {
@@ -74,11 +74,21 @@ html, body {
 }
 .bg-bubbles {
   position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 .bubble {
   position: absolute; border-radius: 50%;
   background: rgba(96,200,255,0.06);
+  -webkit-animation: floatUp linear infinite;
   animation: floatUp linear infinite;
+  will-change: transform;
+}
+@-webkit-keyframes floatUp {
+  0% { -webkit-transform: translateY(100vh) scale(0); transform: translateY(100vh) scale(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.3; }
+  100% { -webkit-transform: translateY(-20vh) scale(1); transform: translateY(-20vh) scale(1); opacity: 0; }
 }
 @keyframes floatUp {
   0% { transform: translateY(100vh) scale(0); opacity: 0; }
@@ -102,7 +112,7 @@ html, body {
   flex-shrink: 0;
 }
 .app-logo {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 26px; font-weight: 800;
   background: linear-gradient(135deg, var(--glow), var(--bright));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -225,7 +235,7 @@ html, body {
   display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px;
 }
 .hero-ml {
-  font-family: 'Syne', sans-serif;
+  font-family: 'DM Mono', monospace;
   font-size: 52px; font-weight: 800; line-height: 1;
   background: linear-gradient(135deg, #fff, var(--foam));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -237,7 +247,7 @@ html, body {
   text-align: left;
 }
 .hero-goal-label { font-size: 11px; color: var(--text3); margin-bottom: 2px; }
-.hero-goal-val { font-size: 18px; font-weight: 700; color: var(--text2); font-family: 'Syne', sans-serif; }
+.hero-goal-val { font-size: 18px; font-weight: 700; color: var(--text2); font-family: 'DM Mono', monospace; }
 .workout-badge {
   display: inline-flex; align-items: center; gap: 4px;
   background: rgba(255,179,71,0.15); border: 1px solid rgba(255,179,71,0.3);
@@ -280,7 +290,7 @@ html, body {
   display: flex; justify-content: space-between; align-items: center;
 }
 .progress-pct {
-  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700;
+  font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700;
   color: var(--glow);
 }
 .progress-remaining { font-size: 12px; color: var(--text3); }
@@ -306,7 +316,7 @@ html, body {
 }
 .stat-icon { font-size: 20px; margin-bottom: 6px; }
 .stat-val {
-  font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+  font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 700;
   color: var(--white); line-height: 1;
 }
 .stat-label { font-size: 10px; color: var(--text3); margin-top: 3px; }
@@ -325,7 +335,7 @@ html, body {
 }
 .streak-info { flex: 1; }
 .streak-num {
-  font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+  font-family: 'DM Mono', monospace; font-size: 32px; font-weight: 800;
   color: var(--warn); line-height: 1;
 }
 .streak-label { font-size: 12px; color: var(--text3); margin-top: 2px; }
@@ -369,7 +379,7 @@ html, body {
 @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 .log-drop { font-size: 20px; }
 .log-ml {
-  font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; flex: 1;
+  font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 700; flex: 1;
 }
 .log-time { font-size: 11px; color: var(--text3); }
 .log-del { font-size: 16px; cursor: pointer; opacity: 0.4; transition: opacity 0.2s; padding: 4px; }
@@ -398,7 +408,7 @@ html, body {
 .quick-btn:active::before { opacity: 1; }
 .quick-btn-icon { font-size: 28px; }
 .quick-btn-ml {
-  font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--white);
+  font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 700; color: var(--white);
 }
 .quick-btn-label { font-size: 11px; color: var(--text3); }
 
@@ -420,7 +430,7 @@ html, body {
 .ml-input {
   flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
   border-radius: 12px; padding: 10px 14px; color: var(--white);
-  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700;
+  font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700;
   text-align: center; outline: none; -webkit-appearance: none;
 }
 .ml-input:focus { border-color: var(--bright); background: rgba(45,142,240,0.08); }
@@ -444,7 +454,7 @@ html, body {
   border-radius: 16px; padding: 14px 10px; text-align: center;
 }
 .hist-stat-num {
-  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700;
+  font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700;
   color: var(--glow);
 }
 .hist-stat-label { font-size: 10px; color: var(--text3); margin-top: 3px; }
@@ -485,7 +495,7 @@ html, body {
 .history-item.achieved { border-color: rgba(0,212,170,0.25); background: rgba(0,212,170,0.05); }
 .history-date { font-size: 12px; color: var(--text3); flex: 1; }
 .history-amount {
-  font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
+  font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 700;
 }
 .history-check { font-size: 18px; }
 .history-minibar {
@@ -529,7 +539,7 @@ html, body {
 .setting-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
 .setting-input {
   background: transparent; border: none; outline: none;
-  color: var(--glow); font-family: 'Syne', sans-serif;
+  color: var(--glow); font-family: 'DM Mono', monospace;
   font-size: 16px; font-weight: 700; text-align: left;
   width: 80px; direction: ltr;
 }
@@ -561,7 +571,7 @@ html, body {
 }
 .celeb-emoji { font-size: 80px; margin-bottom: 16px; display: block; }
 .celeb-title {
-  font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+  font-family: 'DM Mono', monospace; font-size: 32px; font-weight: 800;
   background: linear-gradient(135deg, var(--glow), var(--success));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   margin-bottom: 8px;
@@ -1020,6 +1030,7 @@ html, body {
             <div class="setting-sub">כל כמה זמן לקבל תזכורת</div>
           </div>
           <select class="setting-select" id="settingInterval" onchange="saveSettings()">
+            <option value="3">כל 3 דקות (בדיקה)</option>
             <option value="30">כל 30 דקות</option>
             <option value="45">כל 45 דקות</option>
             <option value="60" selected>כל שעה</option>
@@ -1581,34 +1592,49 @@ function clearAllData() {
 // ─────────────────────────────────────────────
 let reminderInterval = null;
 
-async function toggleReminders() {
+function toggleReminders() {
   if (!state.settings.reminders) {
-    OneSignalDeferred.push(async function(OneSignal) {
-      try {
-        const permission = await OneSignal.Notifications.requestPermission();
-        if (permission) {
-          state.settings.reminders = true;
-          saveSettings(); updateUI();
-          startReminders();
-          showToast('🔔', `התראות הופעלו${getName(', ')}!`);
-        } else {
-          showToast('⚠️', 'לא ניתן אישור להתראות');
-        }
-      } catch(e) {
-        // Fallback to browser notifications
-        Notification.requestPermission().then(p => {
-          state.settings.reminders = p === 'granted';
-          if (state.settings.reminders) { startReminders(); showToast('🔔', 'התראות הופעלו!'); }
-          else showToast('⚠️', 'לא ניתן אישור');
-          saveSettings(); updateUI();
+    // Try OneSignal first, fallback to browser
+    if (window.OneSignalDeferred) {
+      OneSignalDeferred.push(function(OneSignal) {
+        OneSignal.Notifications.requestPermission().then(function(permission) {
+          if (permission) {
+            state.settings.reminders = true;
+            saveSettings(); updateUI();
+            startReminders();
+            showToast('🔔', `התראות הופעלו${getName(', ')}!`);
+          } else {
+            showToast('⚠️', 'לא ניתן אישור להתראות');
+          }
+        }).catch(function() {
+          requestBrowserNotification();
         });
-      }
-    });
+      });
+    } else {
+      requestBrowserNotification();
+    }
   } else {
     state.settings.reminders = false;
     stopReminders();
     saveSettings(); updateUI();
     showToast('🔕', 'התראות כובו');
+  }
+}
+
+function requestBrowserNotification() {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(function(p) {
+      state.settings.reminders = (p === 'granted');
+      if (state.settings.reminders) {
+        startReminders();
+        showToast('🔔', 'התראות הופעלו!');
+      } else {
+        showToast('⚠️', 'לא ניתן אישור להתראות');
+      }
+      saveSettings(); updateUI();
+    });
+  } else {
+    showToast('⚠️', 'הדפדפן לא תומך בהתראות');
   }
 }
 
@@ -1727,15 +1753,18 @@ function spawnConfetti() {
 // ─────────────────────────────────────────────
 function initBubbles() {
   const container = document.getElementById('bubbles');
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 18; i++) {
     const b = document.createElement('div');
     b.className = 'bubble';
-    const size = 20 + Math.random() * 80;
+    const size = 15 + Math.random() * 70;
     b.style.cssText = `
       width:${size}px; height:${size}px;
       left:${Math.random()*100}%;
       animation-duration:${8+Math.random()*16}s;
-      animation-delay:${Math.random()*10}s;
+      -webkit-animation-duration:${8+Math.random()*16}s;
+      animation-delay:${Math.random()*12}s;
+      -webkit-animation-delay:${Math.random()*12}s;
+      background:rgba(96,200,255,${0.04 + Math.random()*0.06});
     `;
     container.appendChild(b);
   }
