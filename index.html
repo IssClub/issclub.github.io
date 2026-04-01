@@ -1053,6 +1053,26 @@ html, body {
       </div>
 
       <div class="settings-section">
+        <div class="settings-label">התראות Push</div>
+        <div class="setting-row" style="cursor:pointer" onclick="enablePush()">
+          <div class="setting-icon">🔔</div>
+          <div class="setting-info">
+            <div class="setting-title">הפעל התראות</div>
+            <div class="setting-sub" id="pushStatusSub">רשום מכשיר זה לקבלת Push</div>
+          </div>
+          <span id="pushStatusBtn" style="color:var(--bright);font-size:13px">הפעל</span>
+        </div>
+        <div class="setting-row" style="cursor:pointer" onclick="testPush()">
+          <div class="setting-icon">🧪</div>
+          <div class="setting-info">
+            <div class="setting-title">בדיקת Push</div>
+            <div class="setting-sub">שלח התראת בדיקה עכשיו</div>
+          </div>
+          <span style="color:var(--bright);font-size:13px">שלח</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <div class="settings-label">Push Server</div>
         <div class="setting-row" style="cursor:pointer" onclick="testPush()">
           <div class="setting-icon">🧪</div>
@@ -1734,6 +1754,55 @@ function testPush() {
   showToast('🧪', 'התראת בדיקה נשלחה');
 }
 
+async function enablePush() {
+  const btn = document.getElementById('pushStatusBtn');
+  const sub = document.getElementById('pushStatusSub');
+  try {
+    btn.textContent = '...';
+    await new Promise(resolve => {
+      if (window.OneSignalDeferred) {
+        window.OneSignalDeferred.push(async (OneSignal) => {
+          const granted = await OneSignal.Notifications.requestPermission();
+          if (granted) {
+            btn.textContent = '✅';
+            btn.style.color = 'var(--success)';
+            sub.textContent = 'המכשיר רשום — Push יגיע גם כשהאפליקציה סגורה';
+            showToast('✅', 'התראות הופעלו בהצלחה!');
+          } else {
+            btn.textContent = '❌';
+            btn.style.color = 'var(--danger)';
+            sub.textContent = 'ההרשאה נדחתה — אפשר דרך הגדרות המכשיר';
+          }
+          resolve();
+        });
+      } else {
+        btn.textContent = 'שגיאה';
+        resolve();
+      }
+    });
+  } catch(e) {
+    btn.textContent = 'שגיאה';
+    sub.textContent = String(e);
+  }
+}
+
+async function updatePushStatus() {
+  const btn = document.getElementById('pushStatusBtn');
+  const sub = document.getElementById('pushStatusSub');
+  if (!btn) return;
+  try {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      const opted = OneSignal.User.PushSubscription.optedIn;
+      if (opted) {
+        btn.textContent = '✅';
+        btn.style.color = 'var(--success)';
+        sub.textContent = 'המכשיר רשום — Push פעיל';
+      }
+    });
+  } catch(e) {}
+}
+
 // ─────────────────────────────────────────────
 // REMINDERS — OneSignal
 // ─────────────────────────────────────────────
@@ -2079,6 +2148,7 @@ window.addEventListener('load', () => {
   initTips();
   showDailyFact();
   fetchWeather();
+  updatePushStatus();
   updateUI();
   if (state.settings.reminders) startReminders();
   if (!state.today.celebratedToday && getTodayTotal() >= getTodayGoal() && getTodayTotal() > 0) {
