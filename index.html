@@ -834,7 +834,6 @@ html, body {
         <span id="weatherIcon">🌡️</span>
         <span id="weatherTemp">—°</span>
       </div>
-      <div class="header-btn" onclick="navigate('settings')" title="הגדרות">⚙️</div>
     </div>
   </div>
 
@@ -1048,21 +1047,7 @@ html, body {
             <div class="toggle-knob"></div>
           </div>
         </div>
-        <div class="setting-row">
-          <div class="setting-icon">🔔</div>
-          <div class="setting-info">
-            <div class="setting-title">תדירות</div>
-            <div class="setting-sub">כל כמה זמן לקבל תזכורת</div>
-          </div>
-          <select class="setting-select" id="settingInterval" onchange="saveSettings()">
-            <option value="3">כל 3 דקות (בדיקה)</option>
-            <option value="30">כל 30 דקות</option>
-            <option value="45">כל 45 דקות</option>
-            <option value="60" selected>כל שעה</option>
-            <option value="90">כל 90 דקות</option>
-            <option value="120">כל שעתיים</option>
-          </select>
-        </div>
+
         <div class="setting-row">
           <div class="setting-icon">🌅</div>
           <div class="setting-info">
@@ -1500,7 +1485,6 @@ function updateUI() {
   document.getElementById('settingGoal').value = state.settings.dailyGoal;
   document.getElementById('settingWorkoutBonus').value = state.settings.workoutBonus;
   document.getElementById('settingName').value = state.settings.name || '';
-  document.getElementById('settingInterval').value = state.settings.interval;
   document.getElementById('settingStart').value = state.settings.startHour;
   document.getElementById('settingEnd').value = state.settings.endHour;
   document.getElementById('settingProxyUrl').value = state.settings.proxyUrl || '';
@@ -1601,7 +1585,6 @@ function saveSettings() {
   state.settings.dailyGoal = parseInt(document.getElementById('settingGoal').value) || 2500;
   state.settings.workoutBonus = parseInt(document.getElementById('settingWorkoutBonus').value) || 1000;
   state.settings.name = document.getElementById('settingName').value.trim();
-  state.settings.interval = parseInt(document.getElementById('settingInterval').value);
   state.settings.startHour = document.getElementById('settingStart').value;
   state.settings.endHour = document.getElementById('settingEnd').value;
   state.settings.proxyUrl = (document.getElementById('settingProxyUrl').value || '').trim().replace(/\/$/, '');
@@ -1935,17 +1918,27 @@ function updateHeader() {
 }
 
 // ─────────────────────────────────────────────
-// WEATHER (Tel Aviv via Open-Meteo — free, no key)
+// WEATHER (Open-Meteo — free, no key)
 // ─────────────────────────────────────────────
+async function fetchWeatherCoords(lat, lon) {
+  const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=celsius`);
+  const data = await res.json();
+  const temp = Math.round(data.current_weather.temperature);
+  const code = data.current_weather.weathercode;
+  document.getElementById('weatherIcon').textContent = weatherIcon(code);
+  document.getElementById('weatherTemp').textContent = `${temp}°`;
+}
+
 async function fetchWeather() {
   try {
-    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.08&longitude=34.78&current_weather=true&temperature_unit=celsius');
-    const data = await res.json();
-    const temp = Math.round(data.current_weather.temperature);
-    const code = data.current_weather.weathercode;
-    const icon = weatherIcon(code);
-    document.getElementById('weatherIcon').textContent = icon;
-    document.getElementById('weatherTemp').textContent = `${temp}°`;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => fetchWeatherCoords(pos.coords.latitude, pos.coords.longitude).catch(() => {}),
+        ()  => fetchWeatherCoords(32.08, 34.78)
+      );
+    } else {
+      await fetchWeatherCoords(32.08, 34.78);
+    }
   } catch(e) {
     document.getElementById('weatherTemp').textContent = '—°';
   }
