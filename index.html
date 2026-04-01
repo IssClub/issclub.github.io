@@ -21,7 +21,7 @@
       safari_web_id: "web.onesignal.auto.41f61fc3-5e9d-4432-a8da-825c9717687d",
       notifyButton: { enable: false },
       allowLocalhostAsSecureOrigin: true,
-      serviceWorkerPath: "/flow/sw.js",
+      serviceWorkerPath: "/flow/OneSignalSDKWorker.js",
       serviceWorkerParam: { scope: "/flow/" },
     });
   });
@@ -2174,7 +2174,7 @@ window.addEventListener('blur', saveState);
 // ─────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./OneSignalSDKWorker.js', { scope: './' }).catch(() => {});
     // Listen for quick-drink from notification action
     navigator.serviceWorker.addEventListener('message', e => {
       if (e.data && e.data.type === 'QUICK_DRINK') {
