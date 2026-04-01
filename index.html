@@ -68,7 +68,7 @@ html, body {
 /* ───── BACKGROUND ───── */
 .bg-layer {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(42,111,196,0.55) 0%, transparent 70%),
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(42,111,196,0.18) 0%, transparent 60%),
               radial-gradient(ellipse 60% 50% at 80% 80%, rgba(26,58,107,0.5) 0%, transparent 60%),
               linear-gradient(180deg, #0d1f3c 0%, #132a50 100%);
 }
@@ -786,6 +786,14 @@ html, body {
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title">הוסף שתייה</div>
+    <div id="drinkTypeSelector" style="display:flex;gap:8px;margin-bottom:16px;justify-content:center">
+      <div id="typeWaterBtn" onclick="setDrinkType('water')" style="flex:1;padding:10px 8px;border-radius:14px;text-align:center;cursor:pointer;border:2px solid var(--bright);background:var(--glass);transition:all 0.2s;font-size:13px;font-weight:600">
+        💧 מים
+      </div>
+      <div id="typeSweetBtn" onclick="setDrinkType('sweet')" style="flex:1;padding:10px 8px;border-radius:14px;text-align:center;cursor:pointer;border:2px solid transparent;background:var(--glass2);transition:all 0.2s;font-size:13px;font-weight:600;color:var(--text3)">
+        🥤 שתייה מתוקה
+      </div>
+    </div>
     <div class="quick-btns">
       <div class="quick-btn" onclick="quickAdd(180)">
         <div class="quick-btn-icon">🥤</div>
@@ -956,11 +964,20 @@ html, body {
       <div class="card week-chart">
         <div class="card-title">7 ימים אחרונים</div>
         <div class="chart-bars" id="chartBars"></div>
-        <div class="chart-goal-line"></div>
         <div style="display:flex;justify-content:center;gap:16px;font-size:10px;color:var(--text3)">
           <span>🟦 בדרך</span>
           <span style="color:var(--success)">🟩 הושג</span>
           <span style="color:var(--bright)">⬛ היום</span>
+        </div>
+      </div>
+
+      <!-- Split Chart -->
+      <div class="card" id="splitChartCard" style="margin-bottom:16px">
+        <div class="card-title">מים 💧 vs שתייה מתוקה 🥤</div>
+        <div id="splitChartBars" style="display:flex;gap:6px;align-items:flex-end;height:80px;padding:0 4px;margin-bottom:8px;position:relative"></div>
+        <div style="display:flex;justify-content:center;gap:16px;font-size:10px;color:var(--text3)">
+          <span>💧 מים</span>
+          <span style="color:var(--warn)">🥤 מתוקה</span>
         </div>
       </div>
 
@@ -1036,46 +1053,7 @@ html, body {
       </div>
 
       <div class="settings-section">
-        <div class="settings-label">תזכורות</div>
-        <div class="setting-row">
-          <div class="setting-icon">⏰</div>
-          <div class="setting-info">
-            <div class="setting-title">תזכורות</div>
-            <div class="setting-sub">הפעל תזכורות דפדפן</div>
-          </div>
-          <div class="toggle-switch" id="reminderSwitch" onclick="toggleReminders()" style="cursor:pointer">
-            <div class="toggle-knob"></div>
-          </div>
-        </div>
-
-        <div class="setting-row">
-          <div class="setting-icon">🌅</div>
-          <div class="setting-info">
-            <div class="setting-title">שעות פעילות</div>
-            <div class="setting-sub">שלח תזכורות בין</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <input type="time" class="setting-input" id="settingStart" value="07:00" onchange="saveSettings()" style="width:70px;font-size:12px">
-            <span style="color:var(--text3);font-size:12px">—</span>
-            <input type="time" class="setting-input" id="settingEnd" value="22:00" onchange="saveSettings()" style="width:70px;font-size:12px">
-          </div>
-        </div>
-      </div>
-
-      <div class="settings-section">
         <div class="settings-label">Push Server</div>
-        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
-          <div style="display:flex;align-items:center;gap:10px;width:100%">
-            <div class="setting-icon">🌐</div>
-            <div class="setting-info">
-              <div class="setting-title">Worker URL</div>
-              <div class="setting-sub">לפוש ברקע גם כשהאפליקציה סגורה (iOS)</div>
-            </div>
-          </div>
-          <input type="url" class="setting-input" id="settingProxyUrl" placeholder="https://flow-push.YOUR.workers.dev"
-            style="width:100%;font-size:12px;direction:ltr;text-align:left;margin-right:0"
-            onchange="saveSettings()">
-        </div>
         <div class="setting-row" style="cursor:pointer" onclick="testPush()">
           <div class="setting-icon">🧪</div>
           <div class="setting-info">
@@ -1227,6 +1205,12 @@ function getTodayGoal() {
 function getTodayTotal() {
   return state.today.entries.reduce((s, e) => s + e.ml, 0);
 }
+function getTodayWaterTotal() {
+  return state.today.entries.filter(e => (e.type || 'water') === 'water').reduce((s,e) => s+e.ml, 0);
+}
+function getTodaySweetTotal() {
+  return state.today.entries.filter(e => e.type === 'sweet').reduce((s,e) => s+e.ml, 0);
+}
 function fmtMl(ml) {
   if (ml >= 1000) {
     const l = ml / 1000;
@@ -1268,12 +1252,16 @@ function archiveToday() {
   if (!state.today.entries.length) return;
   const total = getTodayTotal();
   const goal = getTodayGoal();
+  const waterTotal = state.today.entries.filter(e => (e.type||'water') === 'water').reduce((s,e)=>s+e.ml, 0);
+  const sweetTotal = total - waterTotal;
   state.history.unshift({
     date: state.today.date,
     total,
     goal,
     achieved: total >= goal,
-    isWorkout: state.today.isWorkout
+    isWorkout: state.today.isWorkout,
+    waterTotal,
+    sweetTotal
   });
   if (state.history.length > 90) state.history = state.history.slice(0, 90);
   updateStreak();
@@ -1333,22 +1321,26 @@ function setGender(val) {
   showToast(val === 'f' ? '👩' : '👨', `ההודעות יופיעו ב${val === 'f' ? 'נקבה' : 'זכר'}`);
 }
 
-function addWater(ml) {
+function addWater(ml, type) {
   ml = parseInt(ml);
   if (!ml || ml <= 0 || ml > 5000) return;
-  state.today.entries.push({ ml, time: Date.now() });
+  state.today.entries.push({ ml, time: Date.now(), type: type || currentDrinkType || 'water' });
   saveState();
   checkCurrentBadges();
   updateUI();
   closeAddModal();
+  currentDrinkType = 'water'; // reset to water after adding
+  setDrinkType('water');
   const total = getTodayTotal();
   const goal = getTodayGoal();
-  showToast('💧', `+${fmtMl(ml)} נוסף! סה"כ היום: ${fmtMl(total)}`);
+  const typeLabel = (type || 'water') === 'sweet' ? '🥤' : '💧';
+  showToast(typeLabel, `+${fmtMl(ml)} נוסף! סה"כ היום: ${fmtMl(total)}`);
   if (total >= goal && !state.today.celebratedToday) {
     state.today.celebratedToday = true;
     saveState();
     setTimeout(() => showCelebration(total), 600);
-  }}
+  }
+}
 
 function quickAdd(ml) { addWater(ml); }
 function addCustom() {
@@ -1401,6 +1393,25 @@ function updateUI() {
   document.getElementById('heroGoal').textContent = goalDisplay;
   document.getElementById('heroGoalUnit').textContent = goalUnit;
   document.getElementById('progressFill').style.width = pct + '%';
+  // Traffic light color for progress bar
+  const nowHour = new Date().getHours();
+  const expectedPctForColor = Math.min(100, Math.round(Math.max(0, nowHour - 7) / 16 * 100));
+  let barColor, pctColor;
+  if (pct >= 100) {
+    barColor = 'linear-gradient(90deg, #00c48c, #00ffcc)';
+    pctColor = '#00e0b5';
+  } else if (pct >= expectedPctForColor - 10) {
+    barColor = 'linear-gradient(90deg, #00c48c, #00ffcc)';
+    pctColor = '#00e0b5';
+  } else if (pct >= expectedPctForColor - 25) {
+    barColor = 'linear-gradient(90deg, #ffb347, #ffd700)';
+    pctColor = '#ffb347';
+  } else {
+    barColor = 'linear-gradient(90deg, #ff6b6b, #ff4444)';
+    pctColor = '#ff6b6b';
+  }
+  document.getElementById('progressFill').style.background = barColor;
+  document.getElementById('progressPct').style.color = pctColor;
   document.getElementById('progressPct').textContent = pct + '%';
   document.getElementById('progressRemaining').textContent =
     remaining > 0 ? `נותרו ${fmtMl(remaining)}` : '🎉 יעד הושג!';
@@ -1485,10 +1496,6 @@ function updateUI() {
   document.getElementById('settingGoal').value = state.settings.dailyGoal;
   document.getElementById('settingWorkoutBonus').value = state.settings.workoutBonus;
   document.getElementById('settingName').value = state.settings.name || '';
-  document.getElementById('settingStart').value = state.settings.startHour;
-  document.getElementById('settingEnd').value = state.settings.endHour;
-  document.getElementById('settingProxyUrl').value = state.settings.proxyUrl || '';
-  document.getElementById('reminderSwitch').classList.toggle('on', state.settings.reminders);
 
   renderHistory();
 }
@@ -1499,10 +1506,17 @@ function renderTodayLog() {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">🫙</div><div class="empty-text">עדיין לא רשמת שתייה היום</div></div>`;
     return;
   }
-  el.innerHTML = [...state.today.entries].reverse().map((e, i) => {
+  const waterTot = getTodayWaterTotal();
+  const sweetTot = getTodaySweetTotal();
+  const splitBar = sweetTot > 0 ? `<div style="display:flex;gap:8px;padding:8px 0 12px;font-size:12px;color:var(--text2)">
+    <span>💧 מים: <strong>${fmtMl(waterTot)}</strong></span>
+    <span style="color:var(--text3)">·</span>
+    <span>🥤 מתוקה: <strong style="color:var(--warn)">${fmtMl(sweetTot)}</strong></span>
+  </div>` : '';
+  el.innerHTML = splitBar + [...state.today.entries].reverse().map((e, i) => {
     const realIdx = state.today.entries.length - 1 - i;
     return `<div class="log-item">
-      <div class="log-drop">💧</div>
+      <div class="log-drop">${(e.type||'water')==='sweet'?'🥤':'💧'}</div>
       <div class="log-ml">${fmtMl(e.ml)}</div>
       <div class="log-time">${formatTime(e.time)}</div>
       <div class="log-del" onclick="deleteEntry(${realIdx})">✕</div>
@@ -1536,14 +1550,48 @@ function renderHistory() {
     all7.push({ dayName, total, goal, achieved, isToday });
   }
   const maxVal = Math.max(...all7.map(d=>d.total), state.settings.dailyGoal, 100);
-  cb.innerHTML = all7.map(d => {
+  const goalLineTop = Math.round((1 - state.settings.dailyGoal / maxVal) * 90);
+  const goalLabel = state.settings.dailyGoal >= 1000 ? (state.settings.dailyGoal/1000).toFixed(1)+'L' : state.settings.dailyGoal+'ml';
+  cb.style.position = 'relative';
+  cb.innerHTML = `<div style="position:absolute;left:4px;right:4px;top:${goalLineTop}px;height:1px;background:rgba(255,255,255,0.3);pointer-events:none;z-index:2">
+    <span style="position:absolute;right:0;top:-14px;font-size:9px;color:rgba(255,255,255,0.5);background:transparent;padding:0 2px">${goalLabel} יעד</span>
+  </div>` + all7.map(d => {
     const h = Math.round(d.total / maxVal * 90);
     const cls = d.isToday ? 'today' : (d.achieved ? 'achieved' : '');
+    const mlLabel = d.total > 0 ? (d.total >= 1000 ? (d.total/1000).toFixed(1)+'L' : d.total+'') : '';
     return `<div class="chart-bar-wrap">
       <div class="chart-bar-outer" style="height:90px">
         <div class="chart-bar-fill ${cls}" style="height:${h}px;position:absolute;bottom:0;left:0;right:0;border-radius:6px 6px 2px 2px"></div>
+        ${mlLabel ? `<div style="position:absolute;bottom:${h+2}px;left:0;right:0;text-align:center;font-size:8px;color:var(--text2);pointer-events:none">${mlLabel}</div>` : ''}
       </div>
       <div class="chart-day">${d.isToday?'היום':d.dayName}</div>
+    </div>`;
+  }).join('');
+
+  // Split chart (water vs sweet)
+  const scb = document.getElementById('splitChartBars');
+  const all7WithHist = [];
+  for (let i = 6; i >= 0; i--) {
+    const d2 = new Date(); d2.setDate(d2.getDate() - i);
+    const ds2 = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}-${String(d2.getDate()).padStart(2,'0')}`;
+    const dayNames2 = ['א','ב','ג','ד','ה','ו','ש'];
+    const hist2 = state.history.find(h => h.date === ds2);
+    const isToday2 = ds2 === todayStr();
+    const water = isToday2 ? getTodayWaterTotal() : (hist2 ? (hist2.waterTotal != null ? hist2.waterTotal : hist2.total) : 0);
+    const sweet = isToday2 ? getTodaySweetTotal() : (hist2 ? (hist2.sweetTotal || 0) : 0);
+    all7WithHist.push({ dayName: dayNames2[d2.getDay()], water, sweet, isToday: isToday2 });
+  }
+  const splitMaxVal = Math.max(...all7WithHist.map(d => d.water + d.sweet), 100);
+  scb.innerHTML = all7WithHist.map(d => {
+    const totalH = Math.round((d.water + d.sweet) / splitMaxVal * 70);
+    const waterH = totalH > 0 ? Math.round(d.water / (d.water + d.sweet || 1) * totalH) : 0;
+    const sweetH = totalH - waterH;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="width:100%;height:70px;position:relative;border-radius:6px;overflow:hidden;background:rgba(255,255,255,0.05)">
+        ${waterH > 0 ? `<div style="position:absolute;bottom:0;left:0;right:0;height:${waterH}px;background:linear-gradient(to top,var(--bright),var(--glow));border-radius:4px 4px 2px 2px"></div>` : ''}
+        ${sweetH > 0 ? `<div style="position:absolute;bottom:${waterH}px;left:0;right:0;height:${sweetH}px;background:linear-gradient(to top,#ff9f43,#ffd700);border-radius:4px 4px 2px 2px;opacity:0.85"></div>` : ''}
+      </div>
+      <div style="font-size:10px;color:var(--text3)">${d.isToday?'היום':d.dayName}</div>
     </div>`;
   }).join('');
 
@@ -1585,15 +1633,11 @@ function saveSettings() {
   state.settings.dailyGoal = parseInt(document.getElementById('settingGoal').value) || 2500;
   state.settings.workoutBonus = parseInt(document.getElementById('settingWorkoutBonus').value) || 1000;
   state.settings.name = document.getElementById('settingName').value.trim();
-  state.settings.startHour = document.getElementById('settingStart').value;
-  state.settings.endHour = document.getElementById('settingEnd').value;
-  state.settings.proxyUrl = (document.getElementById('settingProxyUrl').value || '').trim().replace(/\/$/, '');
   // gender saved separately via setGender(), but sync display
   const gv = state.settings.gender || 'm';
   document.getElementById('genderM').classList.toggle('active', gv === 'm');
   document.getElementById('genderF').classList.toggle('active', gv === 'f');
   saveState(); updateHeader(); updateUI();
-  if (state.settings.reminders) { stopReminders(); startReminders(); }
   syncScheduleToWorker();
   const ind = document.getElementById('nameSaved');
   if (ind) { ind.style.opacity = '1'; setTimeout(() => ind.style.opacity = '0', 1500); }
@@ -1694,6 +1738,17 @@ function testPush() {
 // REMINDERS — OneSignal
 // ─────────────────────────────────────────────
 let reminderInterval = null;
+let currentDrinkType = 'water';
+
+function setDrinkType(type) {
+  currentDrinkType = type;
+  document.getElementById('typeWaterBtn').style.border = type === 'water' ? '2px solid var(--bright)' : '2px solid transparent';
+  document.getElementById('typeWaterBtn').style.color = type === 'water' ? 'var(--foam)' : 'var(--text3)';
+  document.getElementById('typeWaterBtn').style.background = type === 'water' ? 'var(--glass)' : 'var(--glass2)';
+  document.getElementById('typeSweetBtn').style.border = type === 'sweet' ? '2px solid var(--warn)' : '2px solid transparent';
+  document.getElementById('typeSweetBtn').style.color = type === 'sweet' ? 'var(--warn)' : 'var(--text3)';
+  document.getElementById('typeSweetBtn').style.background = type === 'sweet' ? 'rgba(255,179,71,0.12)' : 'var(--glass2)';
+}
 
 function toggleReminders() {
   if (!state.settings.reminders) {
