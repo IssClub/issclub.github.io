@@ -1258,7 +1258,7 @@ function loadState() {
     const s = localStorage.getItem('flow_state');
     if (s) {
       const loaded = JSON.parse(s);
-      state = { ...state, ...loaded };
+      state = { ...state, ...loaded, settings: { ...state.settings, ...loaded.settings } };
       // check date rollover
       if (state.today.date !== todayStr()) {
         archiveToday();
@@ -1672,10 +1672,9 @@ function syncOneSignalTags() {
     const reminderText = name
       ? `${name}, אל תשכח${isFemale ? 'י' : ''} לשתות מים`
       : `אל תשכח${isFemale ? 'י' : ''} לשתות מים`;
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async (OneSignal) => {
-      await OneSignal.User.addTag('reminder_text', reminderText);
-    });
+    if (window.OneSignal && window.OneSignal.User) {
+      window.OneSignal.User.addTag('reminder_text', reminderText);
+    }
   } catch(e) {}
 }
 
