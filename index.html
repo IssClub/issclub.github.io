@@ -2195,7 +2195,9 @@ window.addEventListener('blur', saveState);
 // ─────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./OneSignalSDKWorker.js', { scope: './' }).catch(() => {});
+    navigator.serviceWorker.register('./OneSignalSDKWorker.js', { scope: './', updateViaCache: 'none' })
+      .then(reg => reg.update())
+      .catch(() => {});
     // Listen for quick-drink from notification action
     navigator.serviceWorker.addEventListener('message', e => {
       if (e.data && e.data.type === 'QUICK_DRINK') {

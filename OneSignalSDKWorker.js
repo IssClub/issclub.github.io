@@ -1,11 +1,8 @@
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-// ── Flow PWA: cache + notification click ──
-const CACHE_NAME = 'flow-v1.2';
-const ASSETS = ['./', './index.html', './manifest.json'];
+const CACHE_NAME = 'flow-v1.3';
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).catch(() => {}));
   self.skipWaiting();
 });
 
@@ -20,11 +17,22 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(
-    fetch(e.request)
-      .then(res => { caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone())); return res; })
-      .catch(() => caches.match(e.request))
-  );
+  const isHTML = e.request.destination === 'document' || e.request.url.endsWith('.html') || e.request.url.endsWith('/');
+  if (isHTML) {
+    // HTML — תמיד מהרשת, cache כגיבוי בלבד
+    e.respondWith(
+      fetch(e.request)
+        .then(res => { caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone())); return res; })
+        .catch(() => caches.match(e.request))
+    );
+  } else {
+    // שאר הקבצים — cache-first
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request)
+        .then(res => { caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone())); return res; })
+      )
+    );
+  }
 });
 
 self.addEventListener('notificationclick', e => {
