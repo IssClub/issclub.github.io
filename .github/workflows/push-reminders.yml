@@ -2,7 +2,7 @@ name: Flow Push Reminders
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '* * * * *'
   workflow_dispatch:
 
 jobs:
@@ -26,6 +26,5 @@ jobs:
             }")
           echo "OneSignal response: $RESPONSE"
           if echo "$RESPONSE" | grep -q '"errors"'; then
-            echo "ERROR in response"
             exit 1
           fi
