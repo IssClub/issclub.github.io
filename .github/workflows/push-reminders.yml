@@ -2,7 +2,7 @@ name: Flow Push Reminders
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # כל 5 דקות (מינימום GitHub) — לבדיקה
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -21,12 +21,10 @@ jobs:
             -d "{
               \"app_id\": \"${ONESIGNAL_APP_ID}\",
               \"included_segments\": [\"Total Subscriptions\"],
-              \"headings\": {\"he\": \"💧 Flow — זמן לשתות!\"},
-              \"contents\": {\"he\": \"אל תשכח לשתות מים 💧\"}
+              \"headings\": {\"en\": \"Flow - Time to drink!\", \"he\": \"Flow - זמן לשתות!\"},
+              \"contents\": {\"en\": \"Don't forget to drink water\", \"he\": \"אל תשכח לשתות מים\"}
             }")
           echo "OneSignal response: $RESPONSE"
-          RECIPIENTS=$(echo "$RESPONSE" | grep -o '"recipients":[0-9]*' | grep -o '[0-9]*')
-          echo "Recipients: ${RECIPIENTS:-unknown}"
           if echo "$RESPONSE" | grep -q '"errors"'; then
             echo "ERROR in response"
             exit 1
