@@ -2077,7 +2077,7 @@ function fetchWeather() {
   navigator.geolocation.watchPosition(
     pos => fetchWeatherCoords(pos.coords.latitude, pos.coords.longitude).catch(() => {}),
     ()  => fetchWeatherCoords(32.08, 34.78),
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 18000000 }
   );
 }
 function weatherIcon(code) {
