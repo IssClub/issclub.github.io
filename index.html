@@ -149,6 +149,9 @@ html, body {
   font-size: 15px; font-weight: 600; color: var(--white);
   margin-top: 2px; line-height: 1.3;
 }
+.hours-grid { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.hour-btn { padding:4px 9px; border-radius:8px; border:1px solid var(--border2); background:var(--glass); color:var(--text3); font-size:12px; cursor:pointer; transition:all .2s; }
+.hour-btn.sel { background:var(--bright); color:var(--bg); border-color:var(--bright); font-weight:700; }
 .weather-pill {
   display: flex; align-items: center; gap: 4px;
   background: var(--glass); border: 1px solid var(--border2);
@@ -1062,6 +1065,16 @@ html, body {
           </div>
           <span id="pushStatusBtn" style="color:var(--bright);font-size:13px">הפעל</span>
         </div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+          <div style="display:flex;align-items:center;gap:10px;width:100%">
+            <div class="setting-icon">🕐</div>
+            <div class="setting-info">
+              <div class="setting-title">שעות שליחה</div>
+              <div class="setting-sub">לחץ להפעלה/כיבוי — Push יצא בדיוק בשעה</div>
+            </div>
+          </div>
+          <div class="hours-grid" id="reminderHoursGrid"></div>
+        </div>
         <div class="setting-row" style="cursor:pointer" onclick="testPush()">
           <div class="setting-icon">🧪</div>
           <div class="setting-info">
@@ -1179,7 +1192,7 @@ const WATER_FACTS = [
 ];
 
 let state = {
-  settings: { dailyGoal: 2500, workoutBonus: 1000, name: '', gender: 'm', interval: 60, startHour: '07:00', endHour: '22:00', reminders: false, proxyUrl: '' },
+  settings: { dailyGoal: 2500, workoutBonus: 1000, name: '', gender: 'm', interval: 60, reminderHours: [8,12,17,21], reminders: false },
   today: { date: todayStr(), entries: [], isWorkout: false, celebratedToday: false },
   history: [],
   streak: { current: 0, best: 0 },
@@ -1506,6 +1519,7 @@ function updateUI() {
   document.getElementById('settingGoal').value = state.settings.dailyGoal;
   document.getElementById('settingWorkoutBonus').value = state.settings.workoutBonus;
   document.getElementById('settingName').value = state.settings.name || '';
+  renderReminderHours();
   const gv = state.settings.gender || 'm';
   document.getElementById('genderM').classList.toggle('active', gv === 'm');
   document.getElementById('genderF').classList.toggle('active', gv === 'f');
@@ -1651,10 +1665,32 @@ function saveSettings() {
   document.getElementById('genderM').classList.toggle('active', gv === 'm');
   document.getElementById('genderF').classList.toggle('active', gv === 'f');
   saveState(); updateHeader(); updateUI();
-  syncScheduleToWorker();
   syncOneSignalTags();
   const ind = document.getElementById('nameSaved');
   if (ind) { ind.style.opacity = '1'; setTimeout(() => ind.style.opacity = '0', 1500); }
+}
+
+function renderReminderHours() {
+  const grid = document.getElementById('reminderHoursGrid');
+  if (!grid) return;
+  const selected = state.settings.reminderHours || [];
+  grid.innerHTML = '';
+  for (let h = 6; h <= 23; h++) {
+    const btn = document.createElement('button');
+    btn.className = 'hour-btn' + (selected.includes(h) ? ' sel' : '');
+    btn.textContent = String(h).padStart(2,'0') + ':00';
+    btn.onclick = () => toggleReminderHour(h);
+    grid.appendChild(btn);
+  }
+}
+function toggleReminderHour(h) {
+  const hours = state.settings.reminderHours || [];
+  const idx = hours.indexOf(h);
+  if (idx >= 0) hours.splice(idx, 1); else hours.push(h);
+  hours.sort((a,b) => a-b);
+  state.settings.reminderHours = hours;
+  saveState(); renderReminderHours(); syncOneSignalTags();
+  showToast('🕐', hours.length ? `${hours.length} שעות נבחרו` : 'אין שעות פעילות');
 }
 
 function syncOneSignalTags() {
@@ -1665,7 +1701,10 @@ function syncOneSignalTags() {
       ? `${name}, אל תשכח${isFemale ? 'י' : ''} לשתות מים`
       : `אל תשכח${isFemale ? 'י' : ''} לשתות מים`;
     if (window.OneSignal && window.OneSignal.User) {
-      window.OneSignal.User.addTag('reminder_text', reminderText);
+      const tags = { reminder_text: reminderText };
+      const selected = state.settings.reminderHours || [];
+      for (let h = 6; h <= 23; h++) tags[`h${h}`] = selected.includes(h) ? '1' : '0';
+      window.OneSignal.User.addTags(tags);
     }
   } catch(e) {}
 }
@@ -1892,9 +1931,8 @@ function startReminders() {
   const ms = state.settings.interval * 60 * 1000;
   reminderInterval = setInterval(() => {
     const h = new Date().getHours();
-    const [sh] = state.settings.startHour.split(':').map(Number);
-    const [eh] = state.settings.endHour.split(':').map(Number);
-    if (h < sh || h >= eh) return;
+    const hours = state.settings.reminderHours || [];
+    if (!hours.includes(h)) return;
     const total = getTodayTotal();
     const goal = getTodayGoal();
     const pct = Math.round(total / goal * 100);
@@ -2074,10 +2112,19 @@ function fetchWeather() {
     fetchWeatherCoords(32.08, 34.78);
     return;
   }
-  navigator.geolocation.watchPosition(
-    pos => fetchWeatherCoords(pos.coords.latitude, pos.coords.longitude).catch(() => {}),
-    ()  => fetchWeatherCoords(32.08, 34.78),
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 18000000 }
+  // getCurrentPosition triggers the iOS permission dialog immediately
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      fetchWeatherCoords(pos.coords.latitude, pos.coords.longitude).catch(() => {});
+      // After permission granted, watch for location changes (cache up to 5 hours)
+      navigator.geolocation.watchPosition(
+        p => fetchWeatherCoords(p.coords.latitude, p.coords.longitude).catch(() => {}),
+        () => {},
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 18000000 }
+      );
+    },
+    () => fetchWeatherCoords(32.08, 34.78),
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
   );
 }
 function weatherIcon(code) {
