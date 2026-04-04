@@ -1694,7 +1694,7 @@ function toggleReminderHour(h) {
   if (idx >= 0) hours.splice(idx, 1); else hours.push(h);
   hours.sort((a,b) => a-b);
   state.settings.reminderHours = hours;
-  saveState(); renderReminderHours(); syncOneSignalTags();
+  saveState(); renderReminderHours(); syncOneSignalTags(); syncWithWorker();
   showToast('🕐', hours.length ? `${hours.length} שעות נבחרו` : 'אין שעות פעילות');
 }
 
@@ -1811,6 +1811,22 @@ function testPush() {
   showToast('🧪', 'התראת בדיקה נשלחה');
 }
 
+const WORKER_URL = 'https://flow-push-reminders.issgpt.workers.dev';
+
+async function syncWithWorker() {
+  try {
+    if (!window.OneSignal?.User?.PushSubscription?.id) return;
+    const subscriptionId = window.OneSignal.User.PushSubscription.id;
+    const hours = state.settings.reminderHours || [];
+    const name  = state.settings.name || '';
+    await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscriptionId, hours, name })
+    });
+  } catch(e) {}
+}
+
 async function enablePush() {
   const btn = document.getElementById('pushStatusBtn');
   const sub = document.getElementById('pushStatusSub');
@@ -1826,6 +1842,7 @@ async function enablePush() {
             btn.style.color = 'var(--success)';
             sub.textContent = 'המכשיר רשום — Push יגיע גם כשהאפליקציה סגורה';
             showToast('✅', 'התראות פעילות!');
+            syncWithWorker();
           } else {
             const granted = await OneSignal.Notifications.requestPermission();
             if (granted) {
@@ -1833,6 +1850,7 @@ async function enablePush() {
               btn.style.color = 'var(--success)';
               sub.textContent = 'המכשיר רשום — Push יגיע גם כשהאפליקציה סגורה';
               showToast('✅', 'התראות הופעלו בהצלחה!');
+              syncWithWorker();
             } else {
               btn.textContent = '❌';
               btn.style.color = 'var(--danger)';
