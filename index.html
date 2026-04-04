@@ -25,7 +25,6 @@
     // ID קבוע כדי שהמשתמש לא יתחלף בכל session
     let uid = localStorage.getItem('flow_uid');
     if (!uid) { uid = crypto.randomUUID(); localStorage.setItem('flow_uid', uid); }
-    await OneSignal.login(uid);
     // סנכרון tags אחרי שה-SDK מוכן
     if (typeof syncOneSignalTags === 'function') syncOneSignalTags();
   });
@@ -1704,9 +1703,14 @@ function syncOneSignalTags() {
     const name = state.settings.name || '';
     const isFemale = state.settings.gender === 'f';
     const reminderText = name ? `היי ${name}` : 'היי';
-    const tags = { reminder_text: reminderText };
-    const selected = state.settings.reminderHours || [];
-    for (let h = 6; h <= 23; h++) tags[`h${h}`] = selected.includes(h) ? '1' : '0';
+    const selected = (state.settings.reminderHours || []).slice().sort((a,b)=>a-b);
+    const startHour = selected.length ? selected[0] : 7;
+    const endHour   = selected.length ? selected[selected.length-1] + 1 : 22;
+    const tags = {
+      reminder_text:  reminderText,
+      reminder_start: String(startHour),
+      reminder_end:   String(endHour),
+    };
     if (window.OneSignal?.User?.addTags) {
       window.OneSignal.User.addTags(tags);
     } else if (window.OneSignalDeferred) {
