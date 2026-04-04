@@ -22,6 +22,12 @@
       notifyButton: { enable: false },
       allowLocalhostAsSecureOrigin: true,
     });
+    // ID קבוע כדי שהמשתמש לא יתחלף בכל session
+    let uid = localStorage.getItem('flow_uid');
+    if (!uid) { uid = crypto.randomUUID(); localStorage.setItem('flow_uid', uid); }
+    await OneSignal.login(uid);
+    // סנכרון tags אחרי שה-SDK מוכן
+    if (typeof syncOneSignalTags === 'function') syncOneSignalTags();
   });
 </script>
 <title>Flow — שתיית מים</title>
